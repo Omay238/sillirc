@@ -27,11 +27,11 @@ impl SillircApp {
 
 impl App for SillircApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
-            egui::MenuBar::new().ui(ui, |ui| {
-                let is_web = cfg!(target_arch = "wasm32");
-            });
-        });
+        // egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
+        //     egui::MenuBar::new().ui(ui, |ui| {
+        //         let is_web = cfg!(target_arch = "wasm32");
+        //     });
+        // });
 
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("sillirc");
