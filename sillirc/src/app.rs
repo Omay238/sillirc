@@ -7,6 +7,7 @@ pub struct SillircApp {
     current_text: String,
 }
 
+#[allow(clippy::derivable_impls)]
 impl Default for SillircApp {
     fn default() -> Self {
         Self {
