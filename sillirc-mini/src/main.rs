@@ -1,13 +1,14 @@
 use std::env;
 
-use futures::{future, pin_mut, StreamExt};
+use futures::{StreamExt, future, pin_mut};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 
 #[tokio::main]
 async fn main() {
-    let url =
-        env::args().nth(1).unwrap_or_else(|| "ws://0.0.0.0:80".to_string());
+    let url = env::args()
+        .nth(1)
+        .unwrap_or_else(|| "ws://0.0.0.0:80".to_string());
 
     let (stdin_tx, stdin_rx) = futures::channel::mpsc::unbounded();
     tokio::spawn(read_stdin(stdin_tx));

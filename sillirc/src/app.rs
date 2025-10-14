@@ -1,16 +1,16 @@
-use eframe::{egui, App};
+use eframe::{App, egui};
 
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)]
 pub struct SillircApp {
     #[serde(skip)]
-    current_text: String
+    current_text: String,
 }
 
 impl Default for SillircApp {
     fn default() -> Self {
         Self {
-            current_text: String::from("")
+            current_text: String::new(),
         }
     }
 }
@@ -44,8 +44,7 @@ impl App for SillircApp {
 
                 let response = ui.text_edit_singleline(&mut self.current_text);
                 if response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
-                    println!("{}", self.current_text);
-                    self.current_text = "".to_string();
+                    self.current_text = String::new();
                 }
             });
         });
