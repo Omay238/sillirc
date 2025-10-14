@@ -1,6 +1,8 @@
 # sillirc
 ###### An IRC type thing for the silliest of folks.
 
+<img src="sillirc.svg" width="128" alt="sillirc logo" />
+
 For Hack Club Siege Week 3!
 
 ## Theme
