@@ -22,7 +22,10 @@ async fn main() {
     let ws_to_stdout = {
         read.for_each(|message| async {
             let data = message.expect("Message receiving failed").into_data();
-            tokio::io::stdout().write_all(&data).await.expect("Outputting message failed");
+            tokio::io::stdout()
+                .write_all(&data)
+                .await
+                .expect("Outputting message failed");
         })
     };
 
@@ -41,6 +44,7 @@ async fn read_stdin(tx: futures::channel::mpsc::UnboundedSender<Message>) {
             Ok(n) => n,
         };
         buf.truncate(n);
-        tx.unbounded_send(Message::binary(buf)).expect("Sending message failed.");
+        tx.unbounded_send(Message::binary(buf))
+            .expect("Sending message failed.");
     }
 }

@@ -35,7 +35,8 @@ async fn handle_connection(peer_map: PeerMap, raw_stream: TcpStream, addr: Socke
         println!(
             "Received a message from {}: {}",
             addr,
-            msg.to_text().expect("Message couldn't be converted to text")
+            msg.to_text()
+                .expect("Message couldn't be converted to text")
         );
         let peers = peer_map.lock().expect("Peer lock failed");
 
@@ -46,7 +47,8 @@ async fn handle_connection(peer_map: PeerMap, raw_stream: TcpStream, addr: Socke
             .map(|(_, ws_sink)| ws_sink);
 
         for recp in broadcast_recipients {
-            recp.unbounded_send(msg.clone()).expect("Sending messages failed");
+            recp.unbounded_send(msg.clone())
+                .expect("Sending messages failed");
         }
 
         future::ok(())
