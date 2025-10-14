@@ -1,14 +1,14 @@
 use std::env;
 
-use futures::{StreamExt, future, pin_mut};
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use futures::{StreamExt as _, future, pin_mut};
+use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 
 #[tokio::main]
 async fn main() {
     let url = env::args()
         .nth(1)
-        .unwrap_or_else(|| "ws://0.0.0.0:80".to_string());
+        .unwrap_or_else(|| String::from("ws://0.0.0.0:80"));
 
     let (stdin_tx, stdin_rx) = futures::channel::mpsc::unbounded();
     tokio::spawn(read_stdin(stdin_tx));
@@ -21,8 +21,8 @@ async fn main() {
     let stdin_to_ws = stdin_rx.map(Ok).forward(write);
     let ws_to_stdout = {
         read.for_each(|message| async {
-            let data = message.unwrap().into_data();
-            tokio::io::stdout().write_all(&data).await.unwrap();
+            let data = message.expect("Message receiving failed").into_data();
+            tokio::io::stdout().write_all(&data).await.expect("Outputting message failed");
         })
     };
 
@@ -41,6 +41,6 @@ async fn read_stdin(tx: futures::channel::mpsc::UnboundedSender<Message>) {
             Ok(n) => n,
         };
         buf.truncate(n);
-        tx.unbounded_send(Message::binary(buf)).unwrap();
+        tx.unbounded_send(Message::binary(buf)).expect("Sending message failed.");
     }
 }

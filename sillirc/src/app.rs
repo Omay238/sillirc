@@ -1,3 +1,5 @@
+#![warn(clippy::print_stdout, clippy::print_stderr)]
+
 use eframe::{App, egui};
 
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -7,7 +9,7 @@ pub struct SillircApp {
     current_text: String,
 }
 
-#[allow(clippy::derivable_impls)]
+#[expect(clippy::derivable_impls)]
 impl Default for SillircApp {
     fn default() -> Self {
         Self {

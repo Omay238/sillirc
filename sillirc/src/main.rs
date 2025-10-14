@@ -1,7 +1,7 @@
 // based on https://github.com/emilk/eframe_template/tree/main
 // and https://github.com/snapview/tokio-tungstenite/blob/master/examples/client.rs
 
-#![warn(clippy::all, rust_2018_idioms)]
+#![warn(clippy::all, rust_2018_idioms, clippy::print_stdout, clippy::print_stderr)]
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 #[cfg(not(target_arch = "wasm32"))]
