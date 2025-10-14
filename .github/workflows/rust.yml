@@ -150,11 +150,11 @@ jobs:
           args: --verbose --release --target=${{ matrix.TARGET }}
 
       - name: Remove unnecessary build files for upload
-        if: ${{ matrix.os != windows-latest }}
+        if: ${{ matrix.os != 'windows-latest' }}
         run: rm -rf target/${{ matrix.TARGET }}/release/.fingerprint target/${{ matrix.TARGET }}/release/build target/${{ matrix.TARGET }}/release/deps target/${{ matrix.TARGET }}/release/examples target/${{ matrix.TARGET }}/release/incremental target/${{ matrix.TARGET }}/release/.cargo-lock target/${{ matrix.TARGET }}/release/*.d target/${{ matrix.TARGET }}/release/*.rlib
 
       - name: Remove unnecessary build files for upload
-        if: ${{ matrix.os == windows-latest }}
+        if: ${{ matrix.os == 'windows-latest' }}
         run: |
           rmdir /s /q target\${{ matrix.TARGET }}\release\.fingerprint
           rmdir /s /q target\${{ matrix.TARGET }}\release\build
