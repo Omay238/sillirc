@@ -2,27 +2,25 @@
 
 use eframe::{App, egui};
 
-mod network;
+use std::sync::Arc;
+use tokio::sync::Mutex;
+
+use sillirc_lib::networker::{Networker, SerializableMessage};
 
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)]
 pub struct SillircApp {
     #[serde(skip)]
+    runtime: tokio::runtime::Runtime,
+    #[serde(skip)]
+    networker: Arc<Mutex<Option<Networker>>>,
+    #[serde(skip)]
+    messages: Arc<Mutex<Vec<SerializableMessage>>>,
+    #[serde(skip)]
     current_text: String,
     #[serde(skip)]
     temp_username: String,
     username: String,
-}
-
-#[expect(clippy::derivable_impls)]
-impl Default for SillircApp {
-    fn default() -> Self {
-        Self {
-            current_text: String::new(),
-            temp_username: String::new(),
-            username: String::new(),
-        }
-    }
 }
 
 impl SillircApp {
@@ -35,8 +33,44 @@ impl SillircApp {
     }
 }
 
+#[expect(clippy::derivable_impls)]
+impl Default for SillircApp {
+    fn default() -> Self {
+        Self {
+            runtime: tokio::runtime::Builder::new_multi_thread()
+                .enable_all()
+                .build()
+                .expect("Failed to create Tokio runtime"),
+            networker: Arc::new(Mutex::new(None)),
+            messages: Arc::new(Mutex::new(Vec::new())),
+            current_text: String::new(),
+            temp_username: String::new(),
+            username: String::new(),
+        }
+    }
+}
+
 impl App for SillircApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        let networker = self.networker.clone();
+        let is_disconnected =
+            futures::executor::block_on(async { networker.lock().await.is_none() });
+        if is_disconnected {
+            let messages = self.messages.clone();
+
+            self.runtime.spawn(async move {
+                let nw = Networker::new("ws://0.0.0.0:80", move |message| {
+                    let messages = messages.clone();
+                    async move {
+                        messages.lock().await.push(message);
+                    }
+                })
+                .await;
+
+                *networker.lock().await = Some(nw);
+            });
+        }
+
         // egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
         //     egui::MenuBar::new().ui(ui, |ui| {
         //         let is_web = cfg!(target_arch = "wasm32");

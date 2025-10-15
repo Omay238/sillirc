@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["sillirc", "sillirc-mini", "sillirc-server"]
+members = ["sillirc", "sillirc-lib", "sillirc-mini", "sillirc-server"]
 
 [profile.release]
 opt-level = 2
