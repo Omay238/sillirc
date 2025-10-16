@@ -64,8 +64,7 @@ impl Default for SillircApp {
 impl App for SillircApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let networker = self.networker.clone();
-        let is_disconnected =
-            futures::executor::block_on(async { networker.lock().await.is_none() });
+        let is_disconnected = block_on(async { networker.lock().await.is_none() });
         if is_disconnected {
             let messages = self.messages.clone();
             let user = self.user.clone();
@@ -178,15 +177,15 @@ impl App for SillircApp {
         });
     }
 
+    fn save(&mut self, storage: &mut dyn eframe::Storage) {
+        eframe::set_value(storage, eframe::APP_KEY, self);
+    }
+
     fn on_exit(&mut self, _gl: Option<&Context>) {
         self.ez_send(SerializableMessage::new(
             self.user.clone(),
             SerializableMessageType::Leave,
             String::new(),
         ));
-    }
-
-    fn save(&mut self, storage: &mut dyn eframe::Storage) {
-        eframe::set_value(storage, eframe::APP_KEY, self);
     }
 }
