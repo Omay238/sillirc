@@ -1,6 +1,6 @@
 use uuid::Uuid;
 
-#[derive(serde::Deserialize, serde::Serialize, Clone)]
+#[derive(serde::Deserialize, serde::Serialize, Clone, Debug)]
 #[serde(default)]
 pub struct User {
     username: String,

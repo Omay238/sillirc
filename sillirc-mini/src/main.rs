@@ -26,12 +26,15 @@ async fn main() {
             Ok(n) => n,
         };
         buf.truncate(n);
+        let text_content = match String::from_utf8(buf) {
+            Ok(data) => data,
+            Err(_) => continue,
+        }
+        .to_string();
         nw.send(SerializableMessage::new(
             user.clone(),
             SerializableMessageType::Text,
-            String::from_utf8(buf)
-                .expect("Failed UTF-8 unwrap")
-                .to_string(),
+            text_content,
         ))
         .await;
     }

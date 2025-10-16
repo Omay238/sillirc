@@ -3,7 +3,6 @@
 use eframe::{App, egui};
 
 use eframe::glow::Context;
-use futures::executor::block_on;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -17,6 +16,8 @@ pub struct SillircApp {
     runtime: tokio::runtime::Runtime,
     #[serde(skip)]
     networker: Arc<Mutex<Option<Networker>>>,
+    #[serde(skip)]
+    is_connected: bool,
     #[serde(skip)]
     messages: Arc<Mutex<Vec<SerializableMessage>>>,
     #[serde(skip)]
@@ -39,7 +40,12 @@ impl SillircApp {
         let networker = self.networker.clone();
         let msg = message.clone();
         self.runtime.spawn(async move {
-            networker.lock().await.as_mut().unwrap().send(msg).await;
+            match networker.lock().await.as_mut() {
+                Some(nw) => nw,
+                None => return,
+            }
+            .send(msg)
+            .await;
         });
     }
 }
@@ -53,6 +59,7 @@ impl Default for SillircApp {
                 .build()
                 .expect("Failed to create Tokio runtime"),
             networker: Arc::new(Mutex::new(None)),
+            is_connected: false,
             messages: Arc::new(Mutex::new(Vec::new())),
             current_text: String::new(),
             temp_username: String::new(),
@@ -64,8 +71,8 @@ impl Default for SillircApp {
 impl App for SillircApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let networker = self.networker.clone();
-        let is_disconnected = block_on(async { networker.lock().await.is_none() });
-        if is_disconnected {
+        let is_disconnected = networker.blocking_lock().is_none();
+        if !self.is_connected {
             let messages = self.messages.clone();
             let user = self.user.clone();
 
@@ -89,6 +96,8 @@ impl App for SillircApp {
 
                 *networker.lock().await = Some(nw);
             });
+
+            self.is_connected = true;
         }
 
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
@@ -120,11 +129,15 @@ impl App for SillircApp {
                 }
             }
 
+            if is_disconnected {
+                ui.heading("YOU ARE NOT CONNECTED TO A SERVER!");
+            }
+
             egui::ScrollArea::vertical()
                 .auto_shrink([false, true])
                 .stick_to_bottom(true)
                 .show(ui, |ui| {
-                    let messages = block_on(self.messages.lock());
+                    let messages = self.messages.blocking_lock();
                     for message in messages.to_vec() {
                         ui.separator();
 
@@ -171,6 +184,7 @@ impl App for SillircApp {
                             self.current_text.clone(),
                         ));
                         self.current_text = String::new();
+                        response.request_focus();
                     }
                 }
             });

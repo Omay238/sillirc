@@ -2733,6 +2733,7 @@ dependencies = [
  "futures",
  "log",
  "serde",
+ "serde_json",
  "sillirc-lib",
  "tokio",
  "wasm-bindgen-futures",

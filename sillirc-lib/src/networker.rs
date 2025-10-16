@@ -3,7 +3,7 @@ use futures::StreamExt as _;
 use futures::channel::mpsc::UnboundedSender;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 
-#[derive(serde::Deserialize, serde::Serialize, Clone)]
+#[derive(serde::Deserialize, serde::Serialize, Clone, Debug)]
 pub enum SerializableMessageType {
     Join = 0,
     Leave = 1,
@@ -55,7 +55,12 @@ impl Networker {
         Fut: Future<Output = ()> + Send + 'static,
     {
         let (tx, rx) = futures::channel::mpsc::unbounded();
-        let (ws_stream, _) = connect_async(url).await.expect("Failed to connect");
+        let (ws_stream, _) = loop {
+            match connect_async(url).await {
+                Ok(content) => break content,
+                Err(_) => continue,
+            }
+        };
         let (write, read) = ws_stream.split();
 
         tokio::spawn(rx.map(Ok).forward(write));
@@ -66,12 +71,21 @@ impl Networker {
             read.for_each(move |message| {
                 let rx_callback = rx_callback.clone();
                 async move {
-                    let data = message
-                        .expect("Failed to read message")
-                        .into_text()
-                        .expect("Failed to convert message to text");
-                    let msg: SerializableMessage =
-                        serde_json::from_str(&data).expect("Got invalid message");
+                    let data = match message {
+                        Ok(data) => data,
+                        Err(_) => return,
+                    };
+
+                    let text = match data.into_text() {
+                        Ok(text) => text,
+                        Err(_) => return,
+                    };
+
+                    let msg = match serde_json::from_str(&text) {
+                        Ok(data) => data,
+                        Err(_) => return,
+                    };
+
                     rx_callback(msg).await;
                 }
             })
@@ -82,17 +96,18 @@ impl Networker {
             // rx,
             // ws_stream,
             // write,
-            // read.
+            // read
         }
     }
 
     pub async fn send(&mut self, message: SerializableMessage) {
-        self.tx
-            .clone()
-            .unbounded_send(Message::binary(
-                serde_json::to_string(&message)
-                    .expect("Failed to convert SerializableMessage to str"),
-            ))
-            .expect("Failed to send message");
+        let message = match serde_json::to_string(&message) {
+            Ok(data) => data,
+            Err(_) => return,
+        };
+
+        match self.tx.clone().unbounded_send(Message::binary(message)) {
+            _ => {}
+        }
     }
 }
