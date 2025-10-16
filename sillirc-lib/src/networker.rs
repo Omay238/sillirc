@@ -25,6 +25,18 @@ impl SerializableMessage {
             content,
         }
     }
+
+    pub fn get_user(&self) -> User {
+        self.user.clone()
+    }
+
+    pub fn get_message_type(&self) -> SerializableMessageType {
+        self.message_type.clone()
+    }
+
+    pub fn get_content(&self) -> String {
+        self.content.clone()
+    }
 }
 
 #[derive(Clone)]
