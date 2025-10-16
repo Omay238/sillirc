@@ -108,7 +108,6 @@ impl App for SillircApp {
                 let _is_web = cfg!(target_arch = "wasm32");
                 ui.menu_button("preferences", |ui| {
                     if ui.button("change username").clicked() {
-                        self.user = User::set_username(&self.user, String::new());
                         self.renaming = true;
                     }
                 });
@@ -117,15 +116,13 @@ impl App for SillircApp {
 
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("sillirc");
-            if self.user.is_unnamed() {
+            if self.user.is_unnamed() || self.renaming {
                 ui.label("what should we call you? (can be changed in preferences)");
                 let output = egui::TextEdit::singleline(&mut self.temp_username).show(ui);
                 if output.response.lost_focus()
                     && ui.input(|i| i.key_pressed(egui::Key::Enter))
                     && !self.temp_username.is_empty()
                 {
-                    let old_username = self.user.get_username().clone();
-                    self.user = User::set_username(&self.user, self.temp_username.clone());
                     self.ez_send(SerializableMessage::new(
                         self.user.clone(),
                         if self.renaming {
@@ -133,8 +130,10 @@ impl App for SillircApp {
                         } else {
                             SerializableMessageType::Join
                         },
-                        old_username,
+                        self.temp_username.clone(),
                     ));
+                    self.user = User::set_username(&self.user, self.temp_username.clone());
+                    self.renaming = false;
                 }
             }
 
@@ -143,7 +142,6 @@ impl App for SillircApp {
             }
 
             egui::ScrollArea::vertical()
-                .auto_shrink([true, true])
                 .stick_to_bottom(true)
                 .max_height(ui.available_height() - 56.0)
                 .show(ui, |ui| {
@@ -169,7 +167,7 @@ impl App for SillircApp {
                                     ui.label("has left the chat.");
                                 }
                                 SerializableMessageType::Rename => {
-                                    ui.label("changed their name from ");
+                                    ui.label("changed their name to ");
                                     ui.label(
                                         egui::RichText::new(message.get_content().as_str())
                                             .strong()
