@@ -57,9 +57,8 @@ impl Networker {
     {
         let (tx, rx) = futures::channel::mpsc::unbounded();
         let (ws_stream, _) = loop {
-            match connect_async(url).await {
-                Ok(content) => break content,
-                Err(_) => continue,
+            if let Ok(content) = connect_async(url).await {
+                break content;
             }
         };
         let (write, read) = ws_stream.split();
@@ -72,19 +71,12 @@ impl Networker {
             read.for_each(move |message| {
                 let rx_callback = rx_callback.clone();
                 async move {
-                    let data = match message {
-                        Ok(data) => data,
-                        Err(_) => return,
-                    };
+                    let Ok(data) = message else { return };
 
-                    let text = match data.into_text() {
-                        Ok(text) => text,
-                        Err(_) => return,
-                    };
+                    let Ok(text) = data.into_text() else { return };
 
-                    let msg = match serde_json::from_str(&text) {
-                        Ok(data) => data,
-                        Err(_) => return,
+                    let Ok(msg) = serde_json::from_str(&text) else {
+                        return;
                     };
 
                     rx_callback(msg).await;
@@ -102,11 +94,11 @@ impl Networker {
     }
 
     pub async fn send(&mut self, message: SerializableMessage) {
-        let message = match serde_json::to_string(&message) {
-            Ok(data) => data,
-            Err(_) => return,
+        let Ok(message) = serde_json::to_string(&message) else {
+            return;
         };
 
+        #[expect(clippy::match_single_binding)]
         match self.tx.clone().unbounded_send(Message::binary(message)) {
             _ => {}
         }

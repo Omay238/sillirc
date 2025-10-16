@@ -20,7 +20,7 @@ impl User {
     }
 
     pub fn set_username(&self, new_username: String) -> Self {
-        User {
+        Self {
             username: new_username,
             uuid: self.uuid,
         }
@@ -31,7 +31,7 @@ impl User {
     }
 
     pub fn get_uuid(&self) -> Uuid {
-        self.uuid.clone()
+        self.uuid
     }
 }
 

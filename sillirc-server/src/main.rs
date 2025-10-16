@@ -41,6 +41,7 @@ async fn handle_connection(peer_map: PeerMap, raw_stream: TcpStream, addr: Socke
         let peers = peer_map.lock().expect("Peer lock failed");
 
         // We want to broadcast the message to everyone except ourselves.
+        #[expect(clippy::iter_kv_map)]
         let broadcast_recipients = peers
             .iter()
             // .filter(|(peer_addr, _)| peer_addr != &&addr)

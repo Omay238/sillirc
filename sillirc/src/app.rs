@@ -38,7 +38,7 @@ impl SillircApp {
         }
     }
 
-    fn ez_send(&mut self, message: SerializableMessage) {
+    fn ez_send(&self, message: SerializableMessage) {
         let networker = self.networker.clone();
         let msg = message.clone();
         self.runtime.spawn(async move {
@@ -49,32 +49,11 @@ impl SillircApp {
             .send(msg)
             .await;
         });
+        drop(message);
     }
-}
 
-#[expect(clippy::derivable_impls)]
-impl Default for SillircApp {
-    fn default() -> Self {
-        Self {
-            runtime: tokio::runtime::Builder::new_multi_thread()
-                .enable_all()
-                .build()
-                .expect("Failed to create Tokio runtime"),
-            networker: Arc::new(Mutex::new(None)),
-            is_connected: false,
-            messages: Arc::new(Mutex::new(Vec::new())),
-            current_text: String::new(),
-            temp_username: String::new(),
-            renaming: false,
-            user: User::new(String::new()),
-        }
-    }
-}
-
-impl App for SillircApp {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    fn connect(&mut self) {
         let networker = self.networker.clone();
-        let is_disconnected = networker.blocking_lock().is_none();
         if !self.is_connected {
             let messages = self.messages.clone();
             let user = self.user.clone();
@@ -102,6 +81,65 @@ impl App for SillircApp {
 
             self.is_connected = true;
         }
+    }
+
+    fn render_message(message: &SerializableMessage, ui: &mut egui::Ui) {
+        ui.separator();
+
+        ui.horizontal(|ui| {
+            let user = message.get_user();
+            let message_type = message.get_message_type();
+            let uuid_bind = user.get_uuid();
+            let mut uuid = uuid_bind.as_bytes().iter();
+            let r = uuid.next().expect("");
+            let g = uuid.next().expect("");
+            let b = uuid.next().expect("");
+            let col = egui::Color32::from_rgb(*r, *g, *b);
+            ui.label(egui::RichText::new(user.get_username()).strong().color(col));
+            match message_type {
+                SerializableMessageType::Join => {
+                    ui.label("has joined the chat.");
+                }
+                SerializableMessageType::Leave => {
+                    ui.label("has left the chat.");
+                }
+                SerializableMessageType::Rename => {
+                    ui.label("changed their name to ");
+                    ui.label(
+                        egui::RichText::new(message.get_content().as_str())
+                            .strong()
+                            .color(col),
+                    );
+                }
+                SerializableMessageType::Text => {
+                    ui.label(message.get_content());
+                }
+            }
+        });
+    }
+}
+
+impl Default for SillircApp {
+    fn default() -> Self {
+        Self {
+            runtime: tokio::runtime::Builder::new_multi_thread()
+                .enable_all()
+                .build()
+                .expect("Failed to create Tokio runtime"),
+            networker: Arc::new(Mutex::new(None)),
+            is_connected: false,
+            messages: Arc::new(Mutex::new(Vec::new())),
+            current_text: String::new(),
+            temp_username: String::new(),
+            renaming: false,
+            user: User::new(String::new()),
+        }
+    }
+}
+
+impl App for SillircApp {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        self.connect();
 
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::MenuBar::new().ui(ui, |ui| {
@@ -137,7 +175,7 @@ impl App for SillircApp {
                 }
             }
 
-            if is_disconnected {
+            if self.networker.blocking_lock().is_none() {
                 ui.heading("YOU ARE NOT CONNECTED TO A SERVER!");
             }
 
@@ -145,40 +183,12 @@ impl App for SillircApp {
                 .stick_to_bottom(true)
                 .max_height(ui.available_height() - 56.0)
                 .show(ui, |ui| {
-                    let messages = self.messages.blocking_lock();
-                    for message in messages.to_vec() {
-                        ui.separator();
-
-                        ui.horizontal(|ui| {
-                            let user = message.get_user();
-                            let message_type = message.get_message_type();
-                            let uuid_bind = user.get_uuid();
-                            let mut uuid = uuid_bind.as_bytes().iter();
-                            let r = uuid.next().unwrap();
-                            let g = uuid.next().unwrap();
-                            let b = uuid.next().unwrap();
-                            let col = egui::Color32::from_rgb(*r, *g, *b);
-                            ui.label(egui::RichText::new(user.get_username()).strong().color(col));
-                            match message_type {
-                                SerializableMessageType::Join => {
-                                    ui.label("has joined the chat.");
-                                }
-                                SerializableMessageType::Leave => {
-                                    ui.label("has left the chat.");
-                                }
-                                SerializableMessageType::Rename => {
-                                    ui.label("changed their name to ");
-                                    ui.label(
-                                        egui::RichText::new(message.get_content().as_str())
-                                            .strong()
-                                            .color(col),
-                                    );
-                                }
-                                SerializableMessageType::Text => {
-                                    ui.label(message.get_content());
-                                }
-                            }
-                        });
+                    let messages: Vec<_> = {
+                        let guard = self.messages.blocking_lock();
+                        guard.clone()
+                    };
+                    for message in messages {
+                        Self::render_message(&message, ui);
                     }
                 });
 

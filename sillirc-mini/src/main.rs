@@ -26,11 +26,9 @@ async fn main() {
             Ok(n) => n,
         };
         buf.truncate(n);
-        let text_content = match String::from_utf8(buf) {
-            Ok(data) => data,
-            Err(_) => continue,
-        }
-        .to_string();
+        let Ok(text_content) = String::from_utf8(buf) else {
+            continue;
+        };
         nw.send(SerializableMessage::new(
             user.clone(),
             SerializableMessageType::Text,
