@@ -80,7 +80,7 @@ impl App for SillircApp {
             let user = self.user.clone();
 
             self.runtime.spawn(async move {
-                let mut nw = Networker::new("ws://owomay.hackclub.app:9000", move |message| {
+                let mut nw = Networker::new("ws://owomay.hackclub.app:9001", move |message| {
                     let messages = messages.clone();
                     async move {
                         messages.lock().await.push(message);
