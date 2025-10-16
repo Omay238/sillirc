@@ -24,6 +24,8 @@ pub struct SillircApp {
     current_text: String,
     #[serde(skip)]
     temp_username: String,
+    #[serde(skip)]
+    renaming: bool,
     user: User,
 }
 
@@ -63,6 +65,7 @@ impl Default for SillircApp {
             messages: Arc::new(Mutex::new(Vec::new())),
             current_text: String::new(),
             temp_username: String::new(),
+            renaming: false,
             user: User::new(String::new()),
         }
     }
@@ -77,7 +80,7 @@ impl App for SillircApp {
             let user = self.user.clone();
 
             self.runtime.spawn(async move {
-                let mut nw = Networker::new("ws://0.0.0.0:80", move |message| {
+                let mut nw = Networker::new("ws://owomay.hackclub.app:80", move |message| {
                     let messages = messages.clone();
                     async move {
                         messages.lock().await.push(message);
@@ -104,8 +107,9 @@ impl App for SillircApp {
             egui::MenuBar::new().ui(ui, |ui| {
                 let _is_web = cfg!(target_arch = "wasm32");
                 ui.menu_button("preferences", |ui| {
-                    if ui.button("Change Username").clicked() {
+                    if ui.button("change username").clicked() {
                         self.user = User::set_username(&self.user, String::new());
+                        self.renaming = true;
                     }
                 });
             });
@@ -120,11 +124,16 @@ impl App for SillircApp {
                     && ui.input(|i| i.key_pressed(egui::Key::Enter))
                     && !self.temp_username.is_empty()
                 {
+                    let old_username = self.user.get_username().clone();
                     self.user = User::set_username(&self.user, self.temp_username.clone());
                     self.ez_send(SerializableMessage::new(
                         self.user.clone(),
-                        SerializableMessageType::Join,
-                        String::new(),
+                        if self.renaming {
+                            SerializableMessageType::Rename
+                        } else {
+                            SerializableMessageType::Join
+                        },
+                        old_username,
                     ));
                 }
             }
@@ -134,8 +143,9 @@ impl App for SillircApp {
             }
 
             egui::ScrollArea::vertical()
-                .auto_shrink([false, true])
+                .auto_shrink([true, true])
                 .stick_to_bottom(true)
+                .max_height(ui.available_height() - 56.0)
                 .show(ui, |ui| {
                     let messages = self.messages.blocking_lock();
                     for message in messages.to_vec() {
@@ -149,17 +159,22 @@ impl App for SillircApp {
                             let r = uuid.next().unwrap();
                             let g = uuid.next().unwrap();
                             let b = uuid.next().unwrap();
-                            ui.label(
-                                egui::RichText::new(user.get_username())
-                                    .strong()
-                                    .color(egui::Color32::from_rgb(*r, *g, *b)),
-                            );
+                            let col = egui::Color32::from_rgb(*r, *g, *b);
+                            ui.label(egui::RichText::new(user.get_username()).strong().color(col));
                             match message_type {
                                 SerializableMessageType::Join => {
                                     ui.label("has joined the chat.");
                                 }
                                 SerializableMessageType::Leave => {
                                     ui.label("has left the chat.");
+                                }
+                                SerializableMessageType::Rename => {
+                                    ui.label("changed their name from ");
+                                    ui.label(
+                                        egui::RichText::new(message.get_content().as_str())
+                                            .strong()
+                                            .color(col),
+                                    );
                                 }
                                 SerializableMessageType::Text => {
                                     ui.label(message.get_content());
@@ -177,13 +192,19 @@ impl App for SillircApp {
 
                 if !self.user.is_unnamed() {
                     let response = ui.text_edit_singleline(&mut self.current_text);
-                    if response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+                    if response.lost_focus()
+                        && ui.input(|i| i.key_pressed(egui::Key::Enter))
+                        && !self.current_text.is_empty()
+                    {
                         self.ez_send(SerializableMessage::new(
                             self.user.clone(),
                             SerializableMessageType::Text,
                             self.current_text.clone(),
                         ));
                         self.current_text = String::new();
+                    }
+
+                    if response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
                         response.request_focus();
                     }
                 }

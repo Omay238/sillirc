@@ -7,7 +7,8 @@ use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 pub enum SerializableMessageType {
     Join = 0,
     Leave = 1,
-    Text = 2,
+    Rename = 2,
+    Text = 3,
 }
 
 #[derive(serde::Deserialize, serde::Serialize, Clone)]
