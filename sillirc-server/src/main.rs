@@ -67,7 +67,7 @@ async fn handle_connection(peer_map: PeerMap, raw_stream: TcpStream, addr: Socke
 async fn main() -> Result<(), IoError> {
     let addr = env::args()
         .nth(1)
-        .unwrap_or_else(|| String::from("0.0.0.0:9001"));
+        .unwrap_or_else(|| String::from("127.0.0.1:9238"));
 
     let state = PeerMap::new(Mutex::new(HashMap::new()));
 
