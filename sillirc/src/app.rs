@@ -104,7 +104,7 @@ impl SillircApp {
                     ui.label("has left the chat.");
                 }
                 SerializableMessageType::Rename => {
-                    ui.label("changed their name to ");
+                    ui.label("changed their name to");
                     ui.label(
                         egui::RichText::new(message.get_content().as_str())
                             .strong()
