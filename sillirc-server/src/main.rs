@@ -17,8 +17,7 @@ use tokio_tungstenite::tungstenite::protocol::Message;
 type Tx = UnboundedSender<Message>;
 type PeerMap = Arc<Mutex<HashMap<SocketAddr, Tx>>>;
 
-use sillirc_lib::networker::{SerializableMessage, SerializableMessageType};
-use sillirc_lib::user::User;
+use sillirc_lib::networker::SerializableMessage;
 
 async fn handle_connection(peer_map: PeerMap, raw_stream: TcpStream, addr: SocketAddr) {
     println!("Incoming TCP connection from: {addr}");
