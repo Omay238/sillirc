@@ -2763,6 +2763,9 @@ name = "sillirc-server"
 version = "0.1.0"
 dependencies = [
  "futures",
+ "serde",
+ "serde_json",
+ "sillirc-lib",
  "tokio",
  "tokio-tungstenite",
  "tungstenite",

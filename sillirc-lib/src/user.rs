@@ -43,6 +43,14 @@ impl User {
         }
     }
 
+    pub fn clear_uuid(self) -> Self {
+        Self {
+            username: self.username,
+            uuid: Uuid::from_u128(0),
+            color: self.color,
+        }
+    }
+
     pub fn get_username(&self) -> String {
         self.username.clone()
     }

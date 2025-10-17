@@ -17,6 +17,9 @@ use tokio_tungstenite::tungstenite::protocol::Message;
 type Tx = UnboundedSender<Message>;
 type PeerMap = Arc<Mutex<HashMap<SocketAddr, Tx>>>;
 
+use sillirc_lib::networker::{SerializableMessage, SerializableMessageType};
+use sillirc_lib::user::User;
+
 async fn handle_connection(peer_map: PeerMap, raw_stream: TcpStream, addr: SocketAddr) {
     println!("Incoming TCP connection from: {addr}");
 
@@ -47,8 +50,21 @@ async fn handle_connection(peer_map: PeerMap, raw_stream: TcpStream, addr: Socke
             // .filter(|(peer_addr, _)| peer_addr != &&addr)
             .map(|(_, ws_sink)| ws_sink);
 
+        let serialized_message: SerializableMessage =
+            serde_json::from_str(msg.to_text().expect("Failed to convert to text."))
+                .expect("Failed to serialize message");
+
+        let new_message = SerializableMessage::new(
+            serialized_message.get_user().clear_uuid(),
+            serialized_message.get_message_type(),
+            serialized_message.get_content(),
+        );
+
+        let text_new_message =
+            serde_json::to_string(&new_message).expect("Failed to reserialize message");
+
         for recp in broadcast_recipients {
-            recp.unbounded_send(msg.clone())
+            recp.unbounded_send(Message::binary(text_new_message.clone()))
                 .expect("Sending messages failed");
         }
 
