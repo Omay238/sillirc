@@ -25,7 +25,11 @@ pub struct SillircApp {
     #[serde(skip)]
     temp_username: String,
     #[serde(skip)]
+    temp_color: [u8; 3],
+    #[serde(skip)]
     renaming: bool,
+    #[serde(skip)]
+    coloring: bool,
     user: User,
 }
 
@@ -89,12 +93,8 @@ impl SillircApp {
         ui.horizontal(|ui| {
             let user = message.get_user();
             let message_type = message.get_message_type();
-            let uuid_bind = user.get_uuid();
-            let mut uuid = uuid_bind.as_bytes().iter();
-            let r = uuid.next().expect("");
-            let g = uuid.next().expect("");
-            let b = uuid.next().expect("");
-            let col = egui::Color32::from_rgb(*r, *g, *b);
+            let (r, g, b) = user.get_color();
+            let col = egui::Color32::from_rgb(r, g, b);
             ui.label(egui::RichText::new(user.get_username()).strong().color(col));
             match message_type {
                 SerializableMessageType::Join => {
@@ -131,7 +131,9 @@ impl Default for SillircApp {
             messages: Arc::new(Mutex::new(Vec::new())),
             current_text: String::new(),
             temp_username: String::new(),
+            temp_color: [0, 0, 0],
             renaming: false,
+            coloring: false,
             user: User::new(String::new()),
         }
     }
@@ -145,9 +147,15 @@ impl App for SillircApp {
             egui::MenuBar::new().ui(ui, |ui| {
                 let _is_web = cfg!(target_arch = "wasm32");
                 ui.menu_button("preferences", |ui| {
-                    if ui.button("change username").clicked() {
+                    if ui.button("change username").clicked() && !self.user.is_unnamed() {
                         self.renaming = true;
                     }
+                    if ui.button("change username color").clicked() {
+                        self.temp_color = <[u8; 3]>::from(self.user.get_color());
+                        self.coloring = true;
+                    }
+
+                    egui::widgets::global_theme_preference_buttons(ui);
                 });
             });
         });
@@ -155,7 +163,11 @@ impl App for SillircApp {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("sillirc");
             if self.user.is_unnamed() || self.renaming {
-                ui.label("what should we call you? (can be changed in preferences)");
+                if self.renaming {
+                    ui.label("what's your new name?");
+                } else {
+                    ui.label("what should we call you? (can be changed in preferences)");
+                }
                 let output = egui::TextEdit::singleline(&mut self.temp_username).show(ui);
                 if output.response.lost_focus()
                     && ui.input(|i| i.key_pressed(egui::Key::Enter))
@@ -170,8 +182,19 @@ impl App for SillircApp {
                         },
                         self.temp_username.clone(),
                     ));
-                    self.user = User::set_username(&self.user, self.temp_username.clone());
+                    self.user = self.user.clone().set_username(self.temp_username.clone());
                     self.renaming = false;
+                }
+            }
+
+            if self.coloring {
+                ui.color_edit_button_srgb(&mut self.temp_color);
+                if ui.button("accept").clicked() {
+                    self.user = self
+                        .user
+                        .clone()
+                        .set_color(<(u8, u8, u8)>::from(self.temp_color));
+                    self.coloring = false;
                 }
             }
 
