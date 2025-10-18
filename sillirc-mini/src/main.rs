@@ -1,10 +1,10 @@
 // based on https://github.com/snapview/tokio-tungstenite/blob/master/examples/client.rs
 
-use colored::Colorize;
+use colored::Colorize as _;
 use sillirc_lib::networker::{Networker, SerializableMessage, SerializableMessageType};
 use sillirc_lib::user::User;
 use std::env;
-use tokio::io::{AsyncReadExt as _, AsyncWriteExt};
+use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
 
 static mut USER: User = User::new_static();
 
@@ -14,7 +14,9 @@ async fn print_message(message: SerializableMessage) {
     let (r, g, b) = message_user.get_color();
 
     let user;
-    #[allow(unsafe_code, static_mut_refs)]
+    #[expect(unsafe_code, static_mut_refs)]
+    // SAFETY:
+    // Yeah I could avoid doing this but that's lame
     unsafe {
         user = USER.clone();
     }
@@ -69,7 +71,9 @@ async fn main() {
         .unwrap_or_else(|| String::from("Anonymouse"));
 
     let user = User::new(username);
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
+    // SAFETY:
+    // Yeah I could avoid doing this but that's lame
     unsafe {
         USER = user.clone();
     }
@@ -80,7 +84,7 @@ async fn main() {
 
     loop {
         stdout
-            .write(format!("{}: ", user.get_username().truecolor(r, g, b)).as_bytes())
+            .write_all(format!("{}: ", user.get_username().truecolor(r, g, b)).as_bytes())
             .await
             .expect("Failed to write username");
         stdout.flush().await.expect("Failed to flush stdout");
@@ -97,7 +101,7 @@ async fn main() {
         nw.send(SerializableMessage::new(
             user.clone(),
             SerializableMessageType::Text,
-            text_content.replace("\n", ""),
+            text_content.replace('\n', ""),
         ))
         .await;
     }
