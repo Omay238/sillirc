@@ -23,6 +23,14 @@ impl User {
         }
     }
 
+    pub const fn new_static() -> Self {
+        Self {
+            username: String::new(),
+            uuid: Uuid::from_u128(0),
+            color: (0, 0, 0),
+        }
+    }
+
     pub fn is_unnamed(&self) -> bool {
         self.username.is_empty()
     }
