@@ -24,3 +24,5 @@ There are releases available on GitHub over on the right, but if you want the la
 The first, and better, is to go to [nightly.link](https://nightly.link/Omay238/sillirc/workflows/rust/main?preview), and
 get it there. Then, if you plan on development, you can `git clone` the repository, navigate into it, and with cargo
 installed, just run `cargo run --release --bin sillirc` for the GUI.
+
+https://github.com/user-attachments/assets/09454dca-a21f-47e1-a413-90f67ab03d15
